@@ -6,7 +6,7 @@ def get_config():
         "create_packshot": False,
         "add_shadow": False,
         "lifestyle_shot": False,
-        "background_color": "#FFFFFF",
+        "background_color": "#F9F1F1",
         "shadow_type": "natural",
         "scene_description": "",
         "num_results": 1,
