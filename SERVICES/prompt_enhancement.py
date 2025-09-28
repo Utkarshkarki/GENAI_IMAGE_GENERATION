@@ -1,6 +1,7 @@
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Union
 import requests
 import json
+
 
 def enhance_prompt(
     api_key: str,
