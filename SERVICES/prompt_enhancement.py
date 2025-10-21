@@ -9,7 +9,7 @@ def enhance_prompt(
     **kwargs
 ) -> str:
     """
-    Enhance a prompt using Bria AI's prompt enhancement service.
+    Enhance a prompt using Bria AI's prompt enhancement service
     
     Args:
         api_key: Bria AI API key
