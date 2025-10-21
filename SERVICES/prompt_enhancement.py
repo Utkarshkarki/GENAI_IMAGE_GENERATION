@@ -12,7 +12,7 @@ def enhance_prompt(
     Enhance a prompt using Bria AI's prompt enhancement services
     
     Args:
-        api_key: Bria AI API ke
+        api_key: Bria AI API key
         prompt: Original prompt to enhance
         **kwargs: Additional parameters for the API
     
