@@ -53,5 +53,5 @@ def erase_foreground(
     except Exception as e:
         raise Exception(f"Erase foreground failed: {str(e)}")
 
-# Export the function
+# Export the functio
 __all__ = ['erase_foreground'] 
