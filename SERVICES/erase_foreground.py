@@ -30,7 +30,7 @@ def erase_foreground(
         'content_moderation': content_moderation
     }
     
-    # Add image data
+    # Add image dat
     if image_url:
         data['image_url'] = image_url
     elif image_data:
