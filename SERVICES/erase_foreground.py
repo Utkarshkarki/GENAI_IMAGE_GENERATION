@@ -25,7 +25,7 @@ def erase_foreground(
         'Content-Type': 'application/json'
     }
     
-    # Prepare request dat
+    # Prepare request data
     data = {
         'content_moderation': content_moderation
     }
