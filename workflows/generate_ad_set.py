@@ -13,7 +13,7 @@ def generate_ad_set(
     config: Dict[str, Any] = None
 ) -> Dict[str, Any]:
     """
-    Generate a set of product ads based on configuration.
+    Generate a set of product ads based on configuration
     """
     if not config:
         config = {}
