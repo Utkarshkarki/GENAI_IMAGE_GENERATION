@@ -20,7 +20,7 @@ def generate_ad_set(
     
     result = {}
     
-    # Generate HD image if prompt provided
+    # Generate HD image if prompt provide
     if prompt and not image:
         hd_response = generate_hd_image(
             api_key=api_key,
