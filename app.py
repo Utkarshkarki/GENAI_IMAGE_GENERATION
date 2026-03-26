@@ -58,6 +58,8 @@ def initialize_session_state():
         st.session_state.enhanced_prompt = None
     if 'session_gallery' not in st.session_state:
         st.session_state.session_gallery = []  # list of {url, label, timestamp}
+    if 'show_welcome' not in st.session_state:
+        st.session_state.show_welcome = True
 
 def download_image(url):
     """Download image from URL and return as bytes."""
@@ -150,7 +152,34 @@ def auto_check_images(status_container):
 def main():
     st.title("AdSnap Studio")
     initialize_session_state()
-    
+
+    # ── Welcome Banner (first-time only) ──────────────────────────────
+    if st.session_state.show_welcome:
+        with st.container(border=True):
+            col_icon, col_text, col_close = st.columns([0.5, 8.5, 1])
+            with col_icon:
+                st.markdown("## 🌟")
+            with col_text:
+                st.markdown("### Welcome to **AdSnap Studio**!")
+                st.markdown(
+                    "AdSnap Studio uses **Bria AI** to generate and edit product images. "
+                    "Here's how to get started:"
+                )
+                st.markdown(
+                    """
+| Step | What to do |
+|------|------------|
+| 1️⃣  | Paste your **Bria API key** in the sidebar → |
+| 2️⃣  | Pick a tab: **Generate Image**, **Lifestyle Shot**, **Generative Fill**, or **Erase Elements** |
+| 3️⃣  | Enter a prompt or upload a product image and hit the action button |
+| 4️⃣  | Your results appear inline — and are saved to the **Session Gallery** at the bottom |
+"""
+                )
+            with col_close:
+                if st.button("❌ Dismiss", key="dismiss_welcome"):
+                    st.session_state.show_welcome = False
+                    st.rerun()
+
     # Sidebar for API key
     with st.sidebar:
         st.header("Settings")
