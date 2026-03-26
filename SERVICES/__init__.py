@@ -5,7 +5,7 @@ from .prompt_enhancement import enhance_prompt
 from .generative_fill import generative_fill
 from .hd_image_generation import generate_hd_image
 from .erase_foreground import erase_foreground
-from .agent import parse_intent, execute_plan
+from .agent import parse_intent, execute_plan, answer_question
 
 __all__ = [
     'lifestyle_shot_by_text',
@@ -18,4 +18,6 @@ __all__ = [
     'erase_foreground',
     'parse_intent',
     'execute_plan',
+    'answer_question',
 ]
+

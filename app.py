@@ -12,6 +12,7 @@ from services import (
     erase_foreground,
     parse_intent,
     execute_plan,
+    answer_question,
 )
 from services.memory import (
     save_preference,
@@ -1155,139 +1156,22 @@ def main():
                     ollama_url=st.session_state.ollama_url,
                 )
 
-            # ── Conversational question → answer with helpful text, no image plan ──
+            # ── Conversational question → let Ollama answer with full app context ──
             if plan is None:
-                q = user_input.lower()
-
-                # ── Detect follow-up / elaboration requests ──────────────────
-                FOLLOWUP_PHRASES = [
-                    "describe it more", "describe more", "tell me more", "more detail",
-                    "more info", "explain more", "explain further", "elaborate",
-                    "can you explain", "what do you mean", "and then what", "go on",
-                    "in more detail", "expand on", "give me more", "say more",
-                ]
-                is_followup = any(p in q for p in FOLLOWUP_PHRASES) or (
-                    len(user_input.split()) <= 5 and any(
-                        w in q for w in ["more", "further", "again", "continue", "detail"]
+                with st.spinner("💬 Thinking…"):
+                    answer = answer_question(
+                        user_text=user_input,
+                        history=st.session_state.agent_history[:-1],  # exclude the just-appended user msg
+                        model=st.session_state.ollama_model,
+                        ollama_url=st.session_state.ollama_url,
                     )
-                )
-
-                # ── Find the last assistant message to get conversation topic ─
-                last_topic = None
-                if is_followup:
-                    for turn in reversed(st.session_state.agent_history):
-                        if turn["role"] == "assistant" and turn.get("content"):
-                            c = turn["content"].lower()
-                            if "api key" in c or "bria.ai" in c:
-                                last_topic = "api_key"
-                            elif "preset" in c or "amazon ready" in c or "social media kit" in c:
-                                last_topic = "presets"
-                            elif "lifestyle" in c or "packshot" in c or "shadow" in c or "erase" in c:
-                                last_topic = "agent_usage"
-                            elif "image generation agent" in c or "can help you" in c:
-                                last_topic = "capabilities"
-                            if last_topic:
-                                break
-
-                # ── Build answer ─────────────────────────────────────────────
-                # Follow-up: elaborate on the previous topic
-                if is_followup and last_topic == "api_key":
-                    answer = (
-                        "**More detail on the Bria API key:**\n\n"
-                        "- **What it is:** A secret token that identifies your Bria account. "
-                        "Every API call to Bria's image services (generate, lifestyle shot, packshot, etc.) "
-                        "requires this key.\n"
-                        "- **Where to get it:** Sign up at **[bria.ai](https://bria.ai)** → go to your "
-                        "dashboard → click **API Keys** → copy the key shown there.\n"
-                        "- **How to use it here:** Paste it into the **Enter your API key** password box "
-                        "in the **sidebar on the left**. It's treated as a password (hidden by default).\n"
-                        "- **Is it free?** Bria offers a free trial with limited credits. "
-                        "After that, paid plans are available on their website.\n"
-                        "- **Is it safe?** Yes — the key is only held in your browser session memory "
-                        "and is never saved to disk or sent anywhere except directly to Bria's API."
-                    )
-                elif is_followup and last_topic == "presets":
-                    answer = (
-                        "**More detail on Quick Presets:**\n\n"
-                        "**🛍️ Amazon Ready** — runs two steps automatically:\n"
-                        "1. Removes the background and places your product on a clean **white background** (packshot)\n"
-                        "2. Adds a **natural shadow** underneath the product for depth\n"
-                        "Perfect for Amazon, Flipkart, or any e-commerce listing.\n\n"
-                        "**📱 Social Media Kit** — generates **4 lifestyle shots** of your product placed in "
-                        "different positions (upper left, upper right, bottom left, bottom right). "
-                        "Great for Instagram carousels or Facebook ads.\n\n"
-                        "**🎯 Ad Creative** — places your product in a **coffee shop scene** as a lifestyle "
-                        "background. Good for aspirational ad creatives.\n\n"
-                        "> **Tip:** Upload your product image first, then click the preset. "
-                        "The agent automatically chains the steps — you don't need to do anything else."
-                    )
-                elif is_followup and last_topic in ("agent_usage", "capabilities"):
-                    answer = (
-                        "**More detail on what the AI Agent can do:**\n\n"
-                        "**🖼️ Generate Image** — creates an image purely from text. "
-                        "Example: *'A red sneaker on a marble surface'*\n\n"
-                        "**🌄 Lifestyle Shot** — takes your uploaded product and places it into a scene. "
-                        "Example: *'Put this bottle on a kitchen counter with soft morning light'*\n\n"
-                        "**📦 Packshot** — removes the background and creates a clean studio-style photo "
-                        "with a solid color background. Example: *'White background packshot'*\n\n"
-                        "**🌑 Add Shadow** — adds a realistic shadow beneath your product. "
-                        "Example: *'Add a natural shadow'* or *'Add a drop shadow'*\n\n"
-                        "**🧹 Erase Foreground** — removes unwanted elements from your image.\n\n"
-                        "**Chaining steps:** You can combine them: "
-                        "*'Make a packshot then add a shadow'* — the agent runs both steps "
-                        "automatically, passing the packshot result into the shadow step."
-                    )
-                elif is_followup and last_topic is None:
-                    answer = (
-                        "Could you clarify what you'd like me to describe more? For example:\n\n"
-                        "- *'Describe the API key setup more'*\n"
-                        "- *'Describe the presets more'*\n"
-                        "- *'Describe what the agent can do'*"
-                    )
-                # Fresh question — match by keyword
-                elif any(k in q for k in ["api key", "bira key", "bria key", "get key", "find key", "where key", "which key", "which api"]):
-                    answer = (
-                        "**How to get your Bria API key:**\n\n"
-                        "1. Go to **[bria.ai](https://bria.ai)** and sign up / log in\n"
-                        "2. Open your account dashboard → **API Keys**\n"
-                        "3. Copy your key and paste it into the **Enter your API key** box in the sidebar on the left\n\n"
-                        "> The key is only stored for your current browser session — it's never saved to disk."
-                    )
-                elif any(k in q for k in ["preset", "amazon ready", "social media kit", "ad creative"]):
-                    answer = (
-                        "**⚡ Quick Presets** are one-click shortcuts:\n\n"
-                        "| Preset | What it does |\n|---|---|\n"
-                        "| 🛍️ Amazon Ready | White-background packshot → natural shadow |\n"
-                        "| 📱 Social Media Kit | 4 lifestyle shots in different placements |\n"
-                        "| 🎯 Ad Creative | Lifestyle shot in a coffee-shop scene |\n\n"
-                        "Upload a product image first, then click a preset."
-                    )
-                elif any(k in q for k in ["how", "what", "where", "use", "work", "start", "begin", "tab"]):
-                    answer = (
-                        "**How to use the AI Agent:**\n\n"
-                        "1. **Upload** your product image (optional for text-only generation)\n"
-                        "2. **Type** what you want — e.g. *'Put this on a white background with a drop shadow'*\n"
-                        "3. Review the **plan preview** and click **✅ Confirm & Run**\n"
-                        "4. Results appear here and are saved to the **Session Gallery**\n\n"
-                        "Or click one of the **⚡ Quick Presets** above for a one-click workflow."
-                    )
-                else:
-                    answer = (
-                        "I'm an **image generation agent** — I can help you:\n\n"
-                        "- 🖼️ Generate product images from a description\n"
-                        "- 🌄 Create lifestyle shots with custom scenes\n"
-                        "- 📦 Make packshots (clean white-background photos)\n"
-                        "- 🌑 Add shadows to product images\n"
-                        "- 🧹 Erase or fill parts of an image\n\n"
-                        "Try typing something like: *'Put this product in a kitchen with soft lighting'*"
-                    )
-
                 st.session_state.agent_history.append({
                     "role": "assistant",
                     "content": answer,
                     "images": [],
                 })
                 st.rerun()
+
 
 
             # ── Image plan → show plan preview ──────────────────────────────────
