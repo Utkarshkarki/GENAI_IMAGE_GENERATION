@@ -194,6 +194,7 @@ def main():
 | 2️⃣  | Pick a tab: **Generate Image**, **Lifestyle Shot**, **Generative Fill**, or **Erase Elements** |
 | 3️⃣  | Enter a prompt or upload a product image and hit the action button |
 | 4️⃣  | Your results appear inline — and are saved to the **Session Gallery** at the bottom |
+| 5️⃣  | Try the **🤖 AI Agent** tab — describe what you want in plain English and the agent plans & runs the right steps automatically! |
 """
                 )
             with col_close:
