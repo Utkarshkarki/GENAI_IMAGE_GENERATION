@@ -9,7 +9,16 @@ from services import (
     enhance_prompt,
     generative_fill,
     generate_hd_image,
-    erase_foreground
+    erase_foreground,
+    parse_intent,
+    execute_plan,
+)
+from services.memory import (
+    save_preference,
+    get_preferences,
+    clear_preference,
+    clear_all_preferences,
+    merge_with_preferences,
 )
 from PIL import Image
 import io
@@ -60,6 +69,18 @@ def initialize_session_state():
         st.session_state.session_gallery = []  # list of {url, label, timestamp}
     if 'show_welcome' not in st.session_state:
         st.session_state.show_welcome = True
+    if 'agent_memory' not in st.session_state:
+        st.session_state.agent_memory = {}
+    if 'agent_history' not in st.session_state:
+        st.session_state.agent_history = []  # list of {role, content, images}
+    if 'agent_pending_plan' not in st.session_state:
+        st.session_state.agent_pending_plan = None
+    if 'agent_uploaded_image' not in st.session_state:
+        st.session_state.agent_uploaded_image = None
+    if 'ollama_model' not in st.session_state:
+        st.session_state.ollama_model = 'llama3'
+    if 'ollama_url' not in st.session_state:
+        st.session_state.ollama_url = 'http://localhost:11434'
 
 def download_image(url):
     """Download image from URL and return as bytes."""
@@ -180,19 +201,46 @@ def main():
                     st.session_state.show_welcome = False
                     st.rerun()
 
-    # Sidebar for API key
+    # Sidebar for API key + Ollama settings + Agent Memory
     with st.sidebar:
         st.header("Settings")
         api_key = st.text_input("Enter your API key:", value=st.session_state.api_key if st.session_state.api_key else "", type="password")
         if api_key:
             st.session_state.api_key = api_key
 
+        st.divider()
+        st.subheader("🤖 AI Agent — Ollama")
+        st.session_state.ollama_model = st.selectbox(
+            "Ollama Model",
+            ["llama3", "mistral", "phi3", "gemma3"],
+            index=["llama3", "mistral", "phi3", "gemma3"].index(st.session_state.ollama_model),
+        )
+        st.session_state.ollama_url = st.text_input(
+            "Ollama URL", value=st.session_state.ollama_url
+        )
+
+        # Agent memory panel
+        prefs = get_preferences()
+        if prefs:
+            st.divider()
+            st.subheader("🧠 Agent Memory")
+            for k, v in list(prefs.items()):
+                cols = st.columns([4, 1])
+                cols[0].markdown(f"**{k}:** `{v}`")
+                if cols[1].button("✕", key=f"mem_del_{k}"):
+                    clear_preference(k)
+                    st.rerun()
+            if st.button("🗑️ Clear All Memory"):
+                clear_all_preferences()
+                st.rerun()
+
     # Main tabs
     tabs = st.tabs([
         "🎨 Generate Image",
         "🖼️ Lifestyle Shot",
         "🎨 Generative Fill",
-        "🎨 Erase Elements"
+        "🎨 Erase Elements",
+        "🤖 AI Agent",
     ])
     
     # Generate Images Tab
@@ -963,6 +1011,157 @@ def main():
                             "image/png",
                             key="erase_download"
                         )
+
+    # ── AI Agent Tab ───────────────────────────────────────────────────────────
+    with tabs[4]:
+        st.header("🤖 AI Agent")
+        st.markdown(
+            "Describe what you want in plain English. The agent plans and runs the right "
+            "Bria API calls automatically, chaining outputs between steps."
+        )
+
+        # ── Quick Action Presets ──────────────────────────────────────────────
+        st.subheader("⚡ Quick Presets")
+        preset_cols = st.columns(3)
+        PRESETS = {
+            "🛍️ Amazon Ready": "Create a white-background packshot then add a natural shadow",
+            "📱 Social Media Kit": "Generate 4 lifestyle shots in different scene placements",
+            "🎯 Ad Creative":      "Create a lifestyle shot with a coffee shop background",
+        }
+        for col, (label, prompt_text) in zip(preset_cols, PRESETS.items()):
+            if col.button(label, use_container_width=True):
+                st.session_state["agent_preset_prompt"] = prompt_text
+
+        # ── Image uploader ────────────────────────────────────────────────────
+        st.subheader("📸 Product Image (optional for text-only generation)")
+        agent_file = st.file_uploader(
+            "Upload product image",
+            type=["png", "jpg", "jpeg"],
+            key="agent_upload",
+        )
+        if agent_file:
+            st.session_state.agent_uploaded_image = agent_file.getvalue()
+            st.image(agent_file, caption="Uploaded product", width=260)
+
+        # ── Conversation history ──────────────────────────────────────────────
+        for turn in st.session_state.agent_history:
+            with st.chat_message(turn["role"]):
+                st.markdown(turn["content"])
+                if turn.get("images"):
+                    img_cols = st.columns(min(len(turn["images"]), 4))
+                    for icol, url in zip(img_cols, turn["images"]):
+                        icol.image(url, use_column_width=True)
+
+        # ── Visual Plan Preview (pending plan waiting for confirmation) ───────
+        if st.session_state.agent_pending_plan is not None:
+            plan = st.session_state.agent_pending_plan
+            with st.expander("📋 Planned Steps — review before running", expanded=True):
+                SERVICE_LABELS = {
+                    "generate_image":        "🎨 Generate Image",
+                    "lifestyle_shot_by_text": "🌄 Lifestyle Shot (text)",
+                    "lifestyle_shot_by_image": "🌄 Lifestyle Shot (image)",
+                    "add_shadow":            "🌑 Add Shadow",
+                    "create_packshot":       "📦 Create Packshot",
+                    "generative_fill":       "🖌️ Generative Fill",
+                    "erase_foreground":      "🧹 Erase Foreground",
+                }
+                for idx, step in enumerate(plan.steps):
+                    label = SERVICE_LABELS.get(step.service_name, step.service_name)
+                    chain = " *(chains from previous step)*" if step.use_previous_output else ""
+                    params_str = ", ".join(f"{k}: `{v}`" for k, v in step.params.items())
+                    st.markdown(f"**Step {idx + 1}** → {label}{chain}  \n{params_str}")
+
+                confirm_col, cancel_col = st.columns([2, 1])
+                if confirm_col.button("✅ Confirm & Run", type="primary"):
+                    if not st.session_state.api_key:
+                        st.error("Please enter your Bria API key in the sidebar.")
+                    else:
+                        result_urls: list[str] = []
+                        progress_bar = st.progress(0, text="Starting…")
+
+                        def _progress(idx, total, svc):
+                            pct = int((idx / total) * 100)
+                            SERVICE_LABELS_LOCAL = {
+                                "generate_image":        "Generate Image",
+                                "lifestyle_shot_by_text": "Lifestyle Shot",
+                                "lifestyle_shot_by_image": "Lifestyle Shot (image)",
+                                "add_shadow":            "Add Shadow",
+                                "create_packshot":       "Packshot",
+                                "generative_fill":       "Generative Fill",
+                                "erase_foreground":      "Erase",
+                            }
+                            progress_bar.progress(
+                                pct,
+                                text=f"Step {idx + 1}/{total}: {SERVICE_LABELS_LOCAL.get(svc, svc)}…",
+                            )
+
+                        with st.spinner("Running agent plan…"):
+                            try:
+                                result_urls = execute_plan(
+                                    plan=plan,
+                                    initial_image_data=st.session_state.agent_uploaded_image,
+                                    api_key=st.session_state.api_key,
+                                    progress_callback=_progress,
+                                )
+                            except Exception as e:
+                                st.error(f"Agent execution error: {e}")
+
+                        progress_bar.empty()
+
+                        if result_urls:
+                            # Save to conversation history
+                            st.session_state.agent_history.append({
+                                "role": "assistant",
+                                "content": f"✅ Done! Generated {len(result_urls)} image(s).",
+                                "images": result_urls,
+                            })
+                            # Save to session gallery
+                            for url in result_urls:
+                                add_to_gallery(url, "AI Agent")
+                            st.success(f"✨ Agent finished — {len(result_urls)} image(s) added to Session Gallery.")
+                        else:
+                            st.warning("The agent ran but produced no results. Check your API key and try a simpler request.")
+
+                        st.session_state.agent_pending_plan = None
+                        st.rerun()
+
+                if cancel_col.button("❌ Cancel"):
+                    st.session_state.agent_pending_plan = None
+                    st.rerun()
+
+        # ── Chat input ────────────────────────────────────────────────────────
+        # Pre-fill from preset if one was clicked
+        default_chat = st.session_state.pop("agent_preset_prompt", "")
+        user_input = st.chat_input(
+            "Describe what you want…  e.g. 'Put this product on a white background with a drop shadow'",
+        )
+        # Accept both typed input and preset selection
+        if default_chat and not user_input:
+            user_input = default_chat
+
+        if user_input:
+            # Show user message immediately
+            st.session_state.agent_history.append(
+                {"role": "user", "content": user_input, "images": []}
+            )
+
+            with st.spinner("🤔 Parsing your request…"):
+                plan, used_llm = parse_intent(
+                    user_text=user_input,
+                    image_provided=st.session_state.agent_uploaded_image is not None,
+                    preferences=get_preferences(),
+                    model=st.session_state.ollama_model,
+                    ollama_url=st.session_state.ollama_url,
+                )
+
+            parser_note = "*(via Ollama LLM)*" if used_llm else "*(keyword fallback — Ollama not running)*"
+            st.session_state.agent_history.append({
+                "role": "assistant",
+                "content": f"🗺️ Planned **{len(plan.steps)} step(s)** {parser_note}. Review the plan below, then confirm to run.",
+                "images": [],
+            })
+            st.session_state.agent_pending_plan = plan
+            st.rerun()
 
     # ── Session Gallery ────────────────────────────────────────────────────────
     st.divider()
