@@ -56,6 +56,8 @@ def initialize_session_state():
         st.session_state.original_prompt = ""
     if 'enhanced_prompt' not in st.session_state:
         st.session_state.enhanced_prompt = None
+    if 'session_gallery' not in st.session_state:
+        st.session_state.session_gallery = []  # list of {url, label, timestamp}
 
 def download_image(url):
     """Download image from URL and return as bytes."""
@@ -66,6 +68,15 @@ def download_image(url):
     except Exception as e:
         st.error(f"Error downloading image: {str(e)}")
         return None
+
+def add_to_gallery(url: str, label: str = "Generated"):
+    """Add an image URL to the session gallery (avoid duplicates)."""
+    if url and not any(item["url"] == url for item in st.session_state.session_gallery):
+        st.session_state.session_gallery.append({
+            "url": url,
+            "label": label,
+            "index": len(st.session_state.session_gallery) + 1,
+        })
 
 def apply_image_filter(image, filter_type):
     """Apply various filters to the image."""
@@ -194,11 +205,7 @@ def main():
                         except Exception as e:
                             st.error(f"Error enhancing prompt: {str(e)}")
                             
-            # Debug information
-            st.write("Debug - Session State:", {
-                "original_prompt": st.session_state.get("original_prompt"),
-                "enhanced_prompt": st.session_state.get("enhanced_prompt")
-            })
+
         
         with col2:
             num_images = st.slider("Number of images", 1, 4, 1)
@@ -238,24 +245,26 @@ def main():
                     )
                     
                     if result:
-                        # Debug logging
-                        st.write("Debug - Raw API Response:", result)
                         
                         if isinstance(result, dict):
                             if "result_url" in result:
                                 st.session_state.edited_image = result["result_url"]
+                                add_to_gallery(result["result_url"], "Generate")
                                 st.success("✨ Image generated successfully!")
                             elif "result_urls" in result:
                                 st.session_state.edited_image = result["result_urls"][0]
+                                add_to_gallery(result["result_urls"][0], "Generate")
                                 st.success("✨ Image generated successfully!")
                             elif "result" in result and isinstance(result["result"], list):
                                 for item in result["result"]:
                                     if isinstance(item, dict) and "urls" in item:
                                         st.session_state.edited_image = item["urls"][0]
+                                        add_to_gallery(item["urls"][0], "Generate")
                                         st.success("✨ Image generated successfully!")
                                         break
                                     elif isinstance(item, list) and len(item) > 0:
                                         st.session_state.edited_image = item[0]
+                                        add_to_gallery(item[0], "Generate")
                                         st.success("✨ Image generated successfully!")
                                         break
                         else:
@@ -263,7 +272,6 @@ def main():
                             
                 except Exception as e:
                     st.error(f"Error generating images: {str(e)}")
-                    st.write("Full error:", str(e))
     
     # Product Photography Tab
     with tabs[1]:
@@ -330,6 +338,7 @@ def main():
                                 if result and "result_url" in result:
                                     st.success("✨ Packshot created successfully!")
                                     st.session_state.edited_image = result["result_url"]
+                                    add_to_gallery(result["result_url"], "Packshot")
                                 else:
                                     st.error("No result URL in the API response. Please try again.")
                             except Exception as e:
@@ -386,6 +395,7 @@ def main():
                                 if result and "result_url" in result:
                                     st.success("✨ Shadow added successfully!")
                                     st.session_state.edited_image = result["result_url"]
+                                    add_to_gallery(result["result_url"], "Shadow")
                                 else:
                                     st.error("No result URL in the API response. Please try again.")
                             except Exception as e:
@@ -487,29 +497,31 @@ def main():
                                     )
                                     
                                     if result:
-                                        # Debug logging
-                                        st.write("Debug - Raw API Response:", result)
-                                        
                                         if sync_mode:
                                             if isinstance(result, dict):
                                                 if "result_url" in result:
                                                     st.session_state.edited_image = result["result_url"]
+                                                    add_to_gallery(result["result_url"], "Lifestyle Shot")
                                                     st.success("✨ Image generated successfully!")
                                                 elif "result_urls" in result:
                                                     st.session_state.edited_image = result["result_urls"][0]
+                                                    add_to_gallery(result["result_urls"][0], "Lifestyle Shot")
                                                     st.success("✨ Image generated successfully!")
                                                 elif "result" in result and isinstance(result["result"], list):
                                                     for item in result["result"]:
                                                         if isinstance(item, dict) and "urls" in item:
                                                             st.session_state.edited_image = item["urls"][0]
+                                                            add_to_gallery(item["urls"][0], "Lifestyle Shot")
                                                             st.success("✨ Image generated successfully!")
                                                             break
                                                         elif isinstance(item, list) and len(item) > 0:
                                                             st.session_state.edited_image = item[0]
+                                                            add_to_gallery(item[0], "Lifestyle Shot")
                                                             st.success("✨ Image generated successfully!")
                                                             break
                                                 elif "urls" in result:
                                                     st.session_state.edited_image = result["urls"][0]
+                                                    add_to_gallery(result["urls"][0], "Lifestyle Shot")
                                                     st.success("✨ Image generated successfully!")
                                         else:
                                             urls = []
@@ -588,29 +600,31 @@ def main():
                                     )
                                     
                                     if result:
-                                        # Debug logging
-                                        st.write("Debug - Raw API Response:", result)
-                                        
                                         if sync_mode:
                                             if isinstance(result, dict):
                                                 if "result_url" in result:
                                                     st.session_state.edited_image = result["result_url"]
+                                                    add_to_gallery(result["result_url"], "Lifestyle Shot")
                                                     st.success("✨ Image generated successfully!")
                                                 elif "result_urls" in result:
                                                     st.session_state.edited_image = result["result_urls"][0]
+                                                    add_to_gallery(result["result_urls"][0], "Lifestyle Shot")
                                                     st.success("✨ Image generated successfully!")
                                                 elif "result" in result and isinstance(result["result"], list):
                                                     for item in result["result"]:
                                                         if isinstance(item, dict) and "urls" in item:
                                                             st.session_state.edited_image = item["urls"][0]
+                                                            add_to_gallery(item["urls"][0], "Lifestyle Shot")
                                                             st.success("✨ Image generated successfully!")
                                                             break
                                                         elif isinstance(item, list) and len(item) > 0:
                                                             st.session_state.edited_image = item[0]
+                                                            add_to_gallery(item[0], "Lifestyle Shot")
                                                             st.success("✨ Image generated successfully!")
                                                             break
                                                 elif "urls" in result:
                                                     st.session_state.edited_image = result["urls"][0]
+                                                    add_to_gallery(result["urls"][0], "Lifestyle Shot")
                                                     st.success("✨ Image generated successfully!")
                                         else:
                                             urls = []
@@ -777,16 +791,16 @@ def main():
                             )
                             
                             if result:
-                                st.write("Debug - API Response:", result)
-                                
                                 if sync_mode:
                                     if "urls" in result and result["urls"]:
                                         st.session_state.edited_image = result["urls"][0]
+                                        add_to_gallery(result["urls"][0], "Gen Fill")
                                         if len(result["urls"]) > 1:
                                             st.session_state.generated_images = result["urls"]
                                         st.success("✨ Generation complete!")
                                     elif "result_url" in result:
                                         st.session_state.edited_image = result["result_url"]
+                                        add_to_gallery(result["result_url"], "Gen Fill")
                                         st.success("✨ Generation complete!")
                                 else:
                                     if "urls" in result:
@@ -812,7 +826,6 @@ def main():
                                                 status_container.warning("⏳ Still generating... Please check again in a moment.")
                         except Exception as e:
                             st.error(f"Error: {str(e)}")
-                            st.write("Full error details:", str(e))
             
             with col2:
                 if st.session_state.edited_image:
@@ -898,6 +911,7 @@ def main():
                                 if result:
                                     if "result_url" in result:
                                         st.session_state.edited_image = result["result_url"]
+                                        add_to_gallery(result["result_url"], "Erase")
                                         st.success("✨ Area erased successfully!")
                                     else:
                                         st.error("No result URL in the API response. Please try again.")
@@ -921,5 +935,36 @@ def main():
                             key="erase_download"
                         )
 
+    # ── Session Gallery ────────────────────────────────────────────────────────
+    st.divider()
+    gallery = st.session_state.session_gallery
+    col_title, col_clear = st.columns([6, 1])
+    with col_title:
+        st.subheader(f"🖼️ Session Gallery  ({len(gallery)} image{'s' if len(gallery) != 1 else ''})")
+    with col_clear:
+        if gallery and st.button("🗑️ Clear", help="Clear all gallery images"):
+            st.session_state.session_gallery = []
+            st.rerun()
+
+    if not gallery:
+        st.info("No images generated yet in this session. Generate an image above to see it here.")
+    else:
+        cols_per_row = 4
+        rows = [gallery[i:i + cols_per_row] for i in range(0, len(gallery), cols_per_row)]
+        for row in rows:
+            cols = st.columns(cols_per_row)
+            for col, item in zip(cols, row):
+                with col:
+                    st.image(item["url"], caption=f"#{item['index']} — {item['label']}", use_column_width=True)
+                    img_bytes = download_image(item["url"])
+                    if img_bytes:
+                        st.download_button(
+                            "⬇️ Download",
+                            img_bytes,
+                            file_name=f"adsnap_{item['index']}.png",
+                            mime="image/png",
+                            key=f"gallery_dl_{item['index']}"
+                        )
+
 if __name__ == "__main__":
-    main() 
+    main()
