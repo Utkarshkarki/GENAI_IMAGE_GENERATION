@@ -112,6 +112,23 @@ _KEYWORD_RULES = [
 ]
 
 
+_QUESTION_PATTERNS = [
+    r"^(how|what|where|why|when|who|which|can you|could you|do i|should i|is there|is it|are there|tell me|explain|help me understand)",
+    r"\b(how (do|can|to)|what is|what are|where (is|can)|why (is|does)|how (should|would))\b",
+    r"\?\s*$",  # ends with a question mark
+    r"\b(api key|bira key|find.*key|get.*key|sign up|register|account|pricing|cost|free|documentation|docs)\b",
+]
+
+
+def is_question(text: str) -> bool:
+    """Return True if the text looks like a conversational question rather than an image task."""
+    t = text.strip().lower()
+    for pattern in _QUESTION_PATTERNS:
+        if re.search(pattern, t):
+            return True
+    return False
+
+
 def _rule_based_parse(user_text: str, image_provided: bool) -> AgentPlan:
     """Simple keyword-matching fallback when Ollama is unavailable."""
     text_lower = user_text.lower()
@@ -132,11 +149,9 @@ def _rule_based_parse(user_text: str, image_provided: bool) -> AgentPlan:
             use_previous_output=False,
         ))
     elif not steps:
-        steps.append(AgentStep(
-            service_name="generate_image",
-            params={"prompt": user_text, "num_results": 1},
-            use_previous_output=False,
-        ))
+        # Nothing matched and no image — don't force a generate_image call
+        # Return an empty plan so the caller treats it as a no-op / conversational
+        pass
 
     return AgentPlan(steps=steps, original_request=user_text)
 
@@ -149,19 +164,24 @@ def parse_intent(
     preferences: dict | None = None,
     model: str = "llama3",
     ollama_url: str = "http://localhost:11434",
-) -> tuple[AgentPlan, bool]:
+) -> tuple[Optional[AgentPlan], bool]:
     """
     Parse natural-language user request into an AgentPlan.
 
     Returns
     -------
     (plan, used_llm)
-        plan     : AgentPlan ready to execute
+        plan     : AgentPlan ready to execute, or None if the message is
+                   a conversational question (should get a text reply instead)
         used_llm : True if Ollama was used, False if rule-based fallback was used
     """
     preferences = preferences or {}
 
-    # ① Try Ollama first
+    # ① Detect conversational / informational questions — don't try to run image services
+    if is_question(user_text):
+        return None, False
+
+    # ② Try Ollama first
     llm_data = _call_ollama(user_text, model, ollama_url)
 
     if llm_data and "steps" in llm_data:
@@ -180,11 +200,15 @@ def parse_intent(
         if steps:
             return AgentPlan(steps=steps, original_request=user_text), True
 
-    # ② Ollama failed / empty — fall back to rule-based
+    # ③ Ollama failed / empty — fall back to rule-based
     plan = _rule_based_parse(user_text, image_provided)
     # Merge preferences into each step's params
     for step in plan.steps:
         step.params = {**preferences, **step.params}
+
+    # If the rule-based parse also produced no steps, treat as conversational
+    if not plan.steps:
+        return None, False
 
     return plan, False
 

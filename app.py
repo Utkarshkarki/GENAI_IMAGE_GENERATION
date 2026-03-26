@@ -1146,7 +1146,7 @@ def main():
                 {"role": "user", "content": user_input, "images": []}
             )
 
-            with st.spinner("🤔 Parsing your request…"):
+            with st.spinner("🤔 Thinking…"):
                 plan, used_llm = parse_intent(
                     user_text=user_input,
                     image_provided=st.session_state.agent_uploaded_image is not None,
@@ -1155,14 +1155,67 @@ def main():
                     ollama_url=st.session_state.ollama_url,
                 )
 
-            parser_note = "*(via Ollama LLM)*" if used_llm else "*(keyword fallback — Ollama not running)*"
-            st.session_state.agent_history.append({
-                "role": "assistant",
-                "content": f"🗺️ Planned **{len(plan.steps)} step(s)** {parser_note}. Review the plan below, then confirm to run.",
-                "images": [],
-            })
-            st.session_state.agent_pending_plan = plan
-            st.rerun()
+            # ── Conversational question → answer with helpful text, no image plan ──
+            if plan is None:
+                q = user_input.lower()
+                if any(k in q for k in ["api key", "bira key", "bria key", "get key", "find key", "where key"]):
+                    answer = (
+                        "**How to get your Bria API key:**\n\n"
+                        "1. Go to **[bria.ai](https://bria.ai)** and sign up / log in\n"
+                        "2. Open your account dashboard → **API Keys**\n"
+                        "3. Copy your key and paste it into the **Enter your API key** box in the sidebar on the left\n\n"
+                        "> The key is only stored for your current browser session — it's never saved to disk."
+                    )
+                elif any(k in q for k in ["preset", "amazon ready", "social media", "ad creative"]):
+                    answer = (
+                        "**⚡ Quick Presets** are one-click shortcuts:\n\n"
+                        "| Preset | What it does |\n|---|---|\n"
+                        "| 🛍️ Amazon Ready | White-background packshot → natural shadow |\n"
+                        "| 📱 Social Media Kit | 4 lifestyle shots in different placements |\n"
+                        "| 🎯 Ad Creative | Lifestyle shot in a coffee-shop scene |\n\n"
+                        "Upload a product image first, then click a preset."
+                    )
+                elif any(k in q for k in ["how", "what", "where", "use", "work", "start", "begin", "tab"]):
+                    answer = (
+                        "**How to use the AI Agent:**\n\n"
+                        "1. **Upload** your product image (optional for text-only)\n"
+                        "2. **Type** what you want — e.g. *'Put this on a white background with a drop shadow'*\n"
+                        "3. Review the **plan preview** and click **✅ Confirm & Run**\n"
+                        "4. Results appear here and are saved to the **Session Gallery**\n\n"
+                        "Or type a direct image task like:\n"
+                        "- *'Create a lifestyle shot in a kitchen'*\n"
+                        "- *'Add a natural shadow'*\n"
+                        "- *'Make a packshot with white background'*"
+                    )
+                else:
+                    answer = (
+                        "I'm an **image generation agent** — I can help you:\n\n"
+                        "- 🖼️ Generate product images from a description\n"
+                        "- 🌄 Create lifestyle shots with custom scenes\n"
+                        "- 📦 Make packshots (clean white-background photos)\n"
+                        "- 🌑 Add shadows to product images\n"
+                        "- 🧹 Erase or fill parts of an image\n\n"
+                        "Try typing something like: *'Put this product in a kitchen with soft lighting'*"
+                    )
+
+                st.session_state.agent_history.append({
+                    "role": "assistant",
+                    "content": answer,
+                    "images": [],
+                })
+                st.rerun()
+
+            # ── Image plan → show plan preview ──────────────────────────────────
+            else:
+                parser_note = "*(via Ollama LLM)*" if used_llm else "*(keyword fallback — Ollama not running)*"
+                st.session_state.agent_history.append({
+                    "role": "assistant",
+                    "content": f"🗺️ Planned **{len(plan.steps)} step(s)** {parser_note}. Review the plan below, then confirm to run.",
+                    "images": [],
+                })
+                st.session_state.agent_pending_plan = plan
+                st.rerun()
+
 
     # ── Session Gallery ────────────────────────────────────────────────────────
     st.divider()
