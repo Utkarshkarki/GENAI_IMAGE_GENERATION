@@ -1,30 +1,72 @@
-# 📸 AdSnap Studio
+<div align="center">
 
-> **AI-powered product photography & image generation — built with [Bria AI](https://bria.ai) & Streamlit**
+<img src="assets/screenshots/01_generate.png" alt="AdSnap Studio" width="100%"/>
 
-AdSnap Studio lets you generate, edit, and transform product images using plain English. Powered by the Bria AI API, it automates professional product photography workflows in seconds — no design tools required.
+<br/>
+
+# ✦ AdSnap Studio
+
+### AI-Powered Product Photography & Image Generation
+
+[![Python](https://img.shields.io/badge/Python-3.9%2B-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![React](https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev)
+[![Vite](https://img.shields.io/badge/Vite-5-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev)
+[![Bria AI](https://img.shields.io/badge/Powered%20by-Bria%20AI-6366f1?style=flat-square)](https://bria.ai)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
+
+**AdSnap Studio** is a full-stack AI product photography platform built on top of the [Bria AI](https://bria.ai) API. Generate studio-quality product images, create lifestyle scenes, remove backgrounds, add shadows, inpaint and erase objects — all from a modern, dark-mode React interface backed by a FastAPI server.
+
+[**Live Demo**](#-quick-start) · [**Screenshots**](#-screenshots) · [**API Reference**](#-api-reference) · [**Contributing**](#-contributing)
+
+</div>
 
 ---
 
-##  Screenshots
+## 🖼️ Screenshots
 
-### Welcome Screen🤖
-![Welcome Screen](assets/screenshots/welcome.png)
-
-### 🎨 Generate Image
-![Generate Image Tab](assets/screenshots/generate_image.png)
-
-### 🖼️ Lifestyle Shot (Product Photography)
-![Lifestyle Shot Tab](assets/screenshots/lifestyle_shot.png)
-
-### 🎨 Generative Fill
-![Generative Fill Tab](assets/screenshots/generative_fill.png)
-
-### 🧹 Erase Elements
-![Erase Elements Tab](assets/screenshots/erase_elements.png)
-
-### 🤖 AI Agent
-![AI Agent Tab](assets/screenshots/ai_agent.png)
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <strong>🎨 Generate Image</strong><br/>
+      <img src="assets/screenshots/01_generate.png" alt="Generate Image" width="100%"/>
+    </td>
+    <td align="center" width="50%">
+      <strong>🖼️ Lifestyle Shot</strong><br/>
+      <img src="assets/screenshots/02_lifestyle.png" alt="Lifestyle Shot" width="100%"/>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <strong>📦 Packshot</strong><br/>
+      <img src="assets/screenshots/03_packshot.png" alt="Packshot" width="100%"/>
+    </td>
+    <td align="center" width="50%">
+      <strong>🌑 Add Shadow</strong><br/>
+      <img src="assets/screenshots/04_shadow.png" alt="Shadow" width="100%"/>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <strong>✏️ Generative Fill</strong><br/>
+      <img src="assets/screenshots/05_gen_fill.png" alt="Generative Fill" width="100%"/>
+    </td>
+    <td align="center" width="50%">
+      <strong>🧹 Erase Elements</strong><br/>
+      <img src="assets/screenshots/06_erase.png" alt="Erase Elements" width="100%"/>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <strong>🤖 AI Agent</strong><br/>
+      <img src="assets/screenshots/07_agent.png" alt="AI Agent" width="100%"/>
+    </td>
+    <td align="center" width="50%">
+      <strong>🖼️ Session Gallery</strong><br/>
+      <img src="assets/screenshots/08_gallery.png" alt="Session Gallery" width="100%"/>
+    </td>
+  </tr>
+</table>
 
 ---
 
@@ -32,13 +74,67 @@ AdSnap Studio lets you generate, edit, and transform product images using plain 
 
 | Feature | Description |
 |---|---|
-| 🎨 **Generate Image** | Create images from a text prompt with style, aspect ratio and quality controls |
-| 🖼️ **Lifestyle Shot** | Place your product into a custom scene using text or a reference image |
-| 🎨 **Generative Fill** | Draw a mask on an image and describe what to generate in that area |
-| 🧹 **Erase Elements** | Draw over unwanted parts of an image and erase them cleanly |
-| 🤖 **AI Agent** | Describe multi-step workflows in plain English — the agent plans and runs them automatically |
-| 🖼️ **Session Gallery** | Every generated image is auto-saved in a downloadable gallery |
-| 🧠 **Agent Memory** | The agent remembers your preferences (e.g. background color, shadow type) across requests |
+| 🎨 **Generate Image** | Text-to-image with style, aspect ratio, and AI prompt enhancement |
+| 🖼️ **Lifestyle Shot** | Place your product into AI-generated or reference-image scenes |
+| 📦 **Packshot** | Professional studio shots with custom background colors |
+| 🌑 **Add Shadow** | Natural or drop shadows with intensity, blur, and offset controls |
+| ✏️ **Generative Fill** | Paint a mask and describe what to generate in that area |
+| 🧹 **Erase Elements** | Remove any object from an image with a single brush stroke |
+| 🤖 **AI Agent** | Plain-English multi-step workflows — describe it, the agent runs it |
+| 🖼️ **Session Gallery** | All results auto-saved, filterable, and downloadable |
+| 🧠 **Agent Memory** | The agent remembers your preferences across requests |
+
+---
+
+## 🏗️ Architecture
+
+```
+AdSnap Studio
+├── services/                 ← Bria AI API wrappers (Python) — UNCHANGED
+│   ├── hd_image_generation.py
+│   ├── lifestyle_shot.py
+│   ├── packshot.py
+│   ├── shadow.py
+│   ├── generative_fill.py
+│   ├── erase_foreground.py
+│   ├── prompt_enhancement.py
+│   ├── agent.py              ← Intent parsing + plan execution
+│   └── memory.py
+│
+├── backend/                  ← FastAPI REST server (port 8000)
+│   ├── main.py               ← App entrypoint + CORS
+│   ├── utils.py              ← Shared URL extractor
+│   ├── memory_store.py       ← In-process agent memory
+│   └── routers/
+│       ├── generate.py       ← POST /api/generate
+│       ├── lifestyle.py      ← POST /api/lifestyle/text|image
+│       ├── packshot.py       ← POST /api/packshot
+│       ├── shadow.py         ← POST /api/shadow
+│       ├── fill.py           ← POST /api/fill
+│       ├── erase.py          ← POST /api/erase
+│       └── agent.py          ← POST /api/agent/parse|execute|answer
+│
+└── frontend/                 ← React + Vite SPA (port 5173)
+    └── src/
+        ├── App.jsx           ← Root + tab router + gallery state
+        ├── index.css         ← Full design system (dark glassmorphism)
+        ├── api/index.js      ← All fetch wrappers
+        ├── components/
+        │   ├── Sidebar.jsx   ← API key, nav, Ollama, memory panel
+        │   ├── MaskCanvas.jsx← HTML Canvas mask painter
+        │   ├── UploadZone.jsx← Drag-and-drop file upload
+        │   ├── ResultGrid.jsx← Image grid with lightbox + download
+        │   └── Spinner.jsx
+        └── pages/
+            ├── GeneratePage.jsx
+            ├── LifestylePage.jsx
+            ├── PackshotPage.jsx
+            ├── ShadowPage.jsx
+            ├── FillPage.jsx
+            ├── ErasePage.jsx
+            ├── AgentPage.jsx
+            └── GalleryPage.jsx
+```
 
 ---
 
@@ -46,9 +142,12 @@ AdSnap Studio lets you generate, edit, and transform product images using plain 
 
 ### Prerequisites
 
-- Python 3.9+
-- A [Bria AI](https://bria.ai) API key (free trial available)
-- *(Optional)* [Ollama](https://ollama.com) for AI Agent conversational Q&A
+| Requirement | Version | Notes |
+|---|---|---|
+| Python | 3.9+ | For the FastAPI backend |
+| Node.js | 18+ | For the React frontend |
+| Bria AI API Key | — | [Get one free at bria.ai](https://bria.ai) |
+| Ollama *(optional)* | any | For AI Agent natural language parsing |
 
 ### 1. Clone the repository
 
@@ -57,209 +156,248 @@ git clone https://github.com/Utkarshkarki/GENAI_IMAGE_GENERATION.git
 cd GENAI_IMAGE_GENERATION
 ```
 
-### 2. Install dependencies
+### 2. Install backend dependencies
 
 ```bash
-pip install -r requirements.txt
+pip install fastapi "uvicorn[standard]" python-multipart python-dotenv requests Pillow
 ```
 
-### 3. Set up your API key
+### 3. Install frontend dependencies
 
-Create a `.env` file in the root directory:
+```bash
+cd frontend
+npm install
+cd ..
+```
+
+### 4. Configure your API key
+
+Create a `.env` file in the project root *(optional — you can also paste the key in the sidebar at runtime)*:
 
 ```env
 BRIA_API_KEY=your_bria_api_key_here
 ```
 
-Or paste it directly into the **sidebar** when the app starts — it's only stored in your browser session.
-
-### 4. Run the app
+### 5. Run the backend
 
 ```bash
-streamlit run app.py
+# From project root
+python -m uvicorn backend.main:app --reload --port 8000
 ```
 
-Open **http://localhost:8501** in your browser.
+The API will be available at **http://localhost:8000**. Interactive docs at **http://localhost:8000/docs**.
+
+### 6. Run the frontend
+
+```bash
+# In a second terminal
+cd frontend
+npm run dev
+```
+
+Open **http://localhost:5173** — that's it! 🎉
 
 ---
 
 ## 🤖 AI Agent Setup (Optional)
 
-The AI Agent tab uses [Ollama](https://ollama.com) to understand natural language and plan the right API steps.
-
-### Install Ollama
-
-1. Download from [ollama.com](https://ollama.com) and install
-2. Pull a model:
+The AI Agent uses [Ollama](https://ollama.com) to understand natural language and build execution plans.
 
 ```bash
-# Best quality (~4.7 GB)
-ollama pull llama3
-
-# Balanced (~2.3 GB)
-ollama pull phi3
-
-# Fastest / smallest (~637 MB) — good for Q&A
-ollama pull tinyllama
+# Install Ollama from https://ollama.com, then:
+ollama pull llama3      # Best quality (~4.7 GB)
+ollama pull phi3        # Balanced  (~2.3 GB)
+ollama pull tinyllama   # Fastest   (~637 MB)
 ```
 
-3. Ollama runs automatically in the background.
-
-> **Without Ollama:** The AI Agent still works using keyword-based planning. It can handle requests like *"packshot"*, *"add shadow"*, *"lifestyle shot"*, etc. Conversational Q&A will show a short offline fallback message.
+> **Without Ollama:** The agent still works using keyword-based planning — no LLM required.
 
 ---
 
-## 📖 How to Use
+## 📖 Usage Guide
 
-### 🎨 Generate Image Tab
+### 🎨 Generate Image
 
 1. Enter a text prompt describing your image
-2. Adjust settings (optional):
-   - **Number of images** (1–4)
-   - **Aspect ratio** (1:1, 16:9, 9:16, 4:3, 3:4)
-   - **Style** (Realistic, Artistic, Cartoon, etc.)
-   - **Enhance Image Quality** toggle
-3. Click **✨ Generate Images**
+2. Choose **Style** (Realistic, Artistic, Cartoon, Watercolor…)
+3. Set **Aspect Ratio** and number of images
+4. Click **✨ Enhance Prompt** to let AI improve your description
+5. Click **🎨 Generate Images**
 
-> **Tip:** Use the **Enhance Prompt** button to let AI improve your prompt before generating.
+### 🖼️ Lifestyle Shot
 
----
+1. Upload your product image
+2. Choose **Text Prompt** or **Reference Image** mode
+3. Describe the scene, or upload a reference background photo
+4. Select a **Placement Type** (Automatic, Original, Manual…)
+5. Click **Generate Lifestyle Shot**
 
-### 🖼️ Lifestyle Shot Tab
+### 📦 Packshot
 
-1. Upload your product image (PNG, JPG, JPEG — max 200MB)
-2. Choose **Scene Type**:
-   - **Text-based** → describe the scene (e.g. *"kitchen with morning light"*)
-   - **Image-based** → upload a reference photo of the background
-3. Select **Placement Type**: Automatic, Original, Manual, Custom Coordinates
-4. Click **🎬 Generate Lifestyle Shot**
+1. Upload your product image
+2. Choose a background color (white, black, or custom)
+3. Toggle **Force Background Removal** if needed
+4. Click **Create Packshot**
 
----
+### 🌑 Add Shadow
 
-### 🎨 Generative Fill Tab
+1. Upload your product image
+2. Choose **Natural** or **Drop** shadow
+3. Adjust intensity, blur, and offset with sliders
+4. Click **Add Shadow**
 
-1. Upload your image
-2. Draw a mask over the area you want to change
-3. Describe what to generate there (e.g. *"a bunch of fresh flowers"*)
-4. Click **🎨 Apply Generative Fill**
-
----
-
-### 🧹 Erase Elements Tab
+### ✏️ Generative Fill
 
 1. Upload your image
-2. Draw over the object(s) you want to remove
-3. Click **🧹 Erase Elements** — the AI removes them and fills the area naturally
+2. **Paint the area** you want to replace using the brush
+3. Click **✓ Use Mask** to confirm the selection
+4. Describe what to generate in that area
+5. Click **Apply Generative Fill**
 
----
+### 🧹 Erase Elements
 
-### 🤖 AI Agent Tab
+1. Upload your image
+2. **Paint over** the object(s) you want to remove
+3. Click **Erase Selection**
 
-The AI Agent lets you describe complex multi-step workflows in plain English.
+### 🤖 AI Agent
 
-#### Quick Presets (one-click workflows)
+Use **Quick Presets** or type any request in plain English:
+
 | Preset | What it runs |
 |---|---|
 | 🛍️ **Amazon Ready** | Packshot (white bg) → Natural shadow |
 | 📱 **Social Media Kit** | 4 lifestyle shots in different placements |
-| 🎯 **Ad Creative** | Lifestyle shot in a coffee-shop scene |
+| 🎯 **Ad Creative** | Lifestyle shot with a coffee-shop scene |
 
-#### Custom Requests
-1. Upload your product image (optional for text-only tasks)
-2. Type what you want, e.g.:
-   - *"Put this product in a kitchen with soft lighting and add a drop shadow"*
-   - *"Create a white background packshot then add a natural shadow"*
-   - *"Generate a lifestyle shot with a coffee shop background"*
-3. Review the **Plan Preview** — the agent shows every step it will run
-4. Click **✅ Confirm & Run** — results appear in the chat
+Or write your own:
+```
+Put this product on a white background then add a soft drop shadow
+Generate 4 lifestyle shots of this perfume in a luxury bathroom
+Create an Amazon-ready packshot with a natural shadow
+```
 
-#### Agent Memory
-The agent remembers your preferences (e.g. *"always use white background"*) across requests. View, manage, or clear saved preferences in the **🧠 Agent Memory** panel in the sidebar.
+The agent shows a **Plan Preview** before running — review it, then click **✅ Confirm & Run**.
 
 ---
 
-## 📁 Project Structure
+## 📡 API Reference
 
-```
-IMAGEGENERATION/
-│
-├── app.py                    # Main Streamlit application
-├── requirements.txt          # Python dependencies
-├── .env                      # API keys (not committed)
-│
-├── services/
-│   ├── __init__.py           # Service exports
-│   ├── agent.py              # AI Agent — intent parsing & plan execution
-│   ├── memory.py             # Session-scoped preference memory
-│   ├── hd_image_generation.py   # Generate Image service
-│   ├── lifestyle_shot.py     # Lifestyle Shot service
-│   ├── packshot.py           # Packshot / white background service
-│   ├── shadow.py             # Add Shadow service
-│   ├── generative_fill.py    # Generative Fill service
-│   ├── erase_foreground.py   # Erase Elements service
-│   └── prompt_enhancement.py # AI prompt enhancer
-│
-└── assets/
-    └── screenshots/          # App screenshots for documentation
-```
+The backend exposes a REST API at `http://localhost:8000`. Full interactive docs available at `/docs`.
 
----
+All endpoints require the header: `x-api-key: <your-bria-api-key>`
 
-## 🔧 Configuration
-
-All settings are available in the **sidebar**:
-
-| Setting | Description |
-|---|---|
-| **Bria API Key** | Your Bria AI API key (get it from bria.ai → dashboard → API Keys) |
-| **Ollama Model** | LLM model for the AI Agent: `llama3`, `mistral`, `phi3`, `gemma3`, `tinyllama` |
-| **Ollama URL** | Default: `http://localhost:11434` — change only if running Ollama remotely |
-| **Agent Memory** | View and manage the agent's saved preferences |
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/generate` | Text-to-image generation |
+| `POST` | `/api/enhance-prompt` | AI prompt enhancement |
+| `POST` | `/api/lifestyle/text` | Lifestyle shot from text description |
+| `POST` | `/api/lifestyle/image` | Lifestyle shot from reference image |
+| `POST` | `/api/packshot` | Create professional packshot |
+| `POST` | `/api/shadow` | Add shadow to product image |
+| `POST` | `/api/fill` | Generative fill (inpainting) |
+| `POST` | `/api/erase` | Erase foreground object |
+| `POST` | `/api/agent/parse` | Parse natural language into a plan |
+| `POST` | `/api/agent/execute` | Execute an agent plan |
+| `POST` | `/api/agent/answer` | Answer a question via Ollama |
+| `GET` | `/api/agent/memory` | Get agent memory preferences |
+| `DELETE` | `/api/agent/memory/{key}` | Delete a memory entry |
+| `GET` | `/api/health` | Health check |
 
 ---
 
 ## 📦 Dependencies
 
-| Package | Version | Purpose |
-|---|---|---|
-| `streamlit` | 1.x | Web UI framework |
-| `requests` | 2.x | HTTP calls to Bria API & Ollama |
-| `python-dotenv` | 1.x | Load `.env` API keys |
-| `Pillow` | 10.x | Image processing |
-| `streamlit-drawable-canvas` | 0.9.x | Mask drawing for Generative Fill / Erase |
+### Backend
 
-Install all at once:
-```bash
-pip install -r requirements.txt
-```
+| Package | Purpose |
+|---|---|
+| `fastapi` | REST API framework |
+| `uvicorn` | ASGI server |
+| `python-multipart` | Multipart form / file upload handling |
+| `python-dotenv` | `.env` file loading |
+| `requests` | HTTP calls to Bria API and Ollama |
+| `Pillow` | Image processing utilities |
+
+### Frontend
+
+| Package | Purpose |
+|---|---|
+| `react` + `vite` | UI framework and build tool |
+| `react-hot-toast` | Toast notifications |
+| `lucide-react` | Icon library |
+| `axios` | HTTP client |
 
 ---
 
 ## 🔑 Getting a Bria API Key
 
 1. Go to **[bria.ai](https://bria.ai)** and create a free account
-2. Open your dashboard → **API Keys**
+2. Open **Dashboard → API Keys**
 3. Copy your key
-4. Paste it into the **Enter your API key** box in the app sidebar
+4. Paste it in the **sidebar** of the app — it saves automatically in your browser
 
-> The key is only stored in your current browser session — never saved to disk.
+> The key is stored in `localStorage` only — it never leaves your machine or reaches any server other than Bria's.
+
+---
+
+## 🏗️ Tech Stack
+
+```
+Frontend          Backend           AI / APIs
+─────────         ─────────         ─────────
+React 18          FastAPI           Bria AI (image generation)
+Vite 5            Python 3.11       Ollama (local LLM)
+HTML Canvas       Uvicorn           llama3 / mistral / phi3
+react-hot-toast   Pydantic v2
+Space Grotesk     python-multipart
+Inter font
+```
 
 ---
 
 ## 🤝 Contributing
 
-Pull requests are welcome. For major changes, please open an issue first to discuss what you'd like to change.
+Contributions are very welcome! Here's how to get started:
+
+```bash
+# Fork the repo, then:
+git clone https://github.com/YOUR_USERNAME/GENAI_IMAGE_GENERATION.git
+cd GENAI_IMAGE_GENERATION
+
+# Create a feature branch
+git checkout -b feature/your-feature-name
+
+# Make changes, then submit a PR
+```
+
+Please open an issue first for significant changes. All PRs should:
+- Follow the existing code style
+- Add or update documentation as needed
+- Not break existing service interfaces
 
 ---
 
 ## 📄 License
 
-This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
 
 ---
 
 ## 🙏 Acknowledgements
 
-- [Bria AI](https://bria.ai) — Image generation and editing API
-- [Streamlit](https://streamlit.io) — Web app framework
-- [Ollama](https://ollama.com) — Local LLM inference
+- [**Bria AI**](https://bria.ai) — Responsible AI for commercial image generation and editing
+- [**Ollama**](https://ollama.com) — Run large language models locally
+- [**FastAPI**](https://fastapi.tiangolo.com) — Modern, fast Python web framework
+- [**Vite**](https://vitejs.dev) — Next-generation frontend tooling
+- [**Space Grotesk**](https://fonts.google.com/specimen/Space+Grotesk) — Beautiful geometric typeface
+
+---
+
+<div align="center">
+
+Built with ❤️ using [Bria AI](https://bria.ai) · [React](https://react.dev) · [FastAPI](https://fastapi.tiangolo.com)
+
+⭐ **Star this repo** if you find it useful!
+
+</div>
