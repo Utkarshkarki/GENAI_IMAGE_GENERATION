@@ -6,9 +6,9 @@ AdSnap Studio lets you generate, edit, and transform product images using plain 
 
 ---
 
-## 🖼️ Screenshots
+##  Screenshots
 
-### Welcome Screen
+### Welcome Screen🤖
 ![Welcome Screen](assets/screenshots/welcome.png)
 
 ### 🎨 Generate Image
