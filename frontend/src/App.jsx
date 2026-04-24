@@ -15,16 +15,26 @@ function loadGallery() {
   try { return JSON.parse(localStorage.getItem('imagemod_gallery') || '[]'); } catch { return []; }
 }
 
+function loadLlmConfig() {
+  try {
+    return JSON.parse(localStorage.getItem('imagemod_llm_config') || 'null') ||
+      { provider: 'ollama', model: 'llama3' };
+  } catch { return { provider: 'ollama', model: 'llama3' }; }
+}
+
 export default function App() {
   const [activeTab, setActiveTab] = useState('generate');
   const [gallery, setGallery] = useState(loadGallery);
-  const [ollamaModel, setOllamaModel] = useState('llama3');
-  const [ollamaUrl, setOllamaUrl] = useState('http://localhost:11434');
+  const [llmConfig, setLlmConfig] = useState(loadLlmConfig);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     localStorage.setItem('imagemod_gallery', JSON.stringify(gallery));
   }, [gallery]);
+
+  useEffect(() => {
+    localStorage.setItem('imagemod_llm_config', JSON.stringify(llmConfig));
+  }, [llmConfig]);
 
   function addToGallery(url, label) {
     setGallery(g => {
@@ -41,7 +51,7 @@ export default function App() {
     toast('Gallery cleared', { icon: '🗑️', duration: 2000 });
   }
 
-  const PAGE_PROPS = { addToGallery, ollamaModel, ollamaUrl };
+  const PAGE_PROPS = { addToGallery, llmConfig };
 
   const PAGES = {
     generate:  <GeneratePage  {...PAGE_PROPS} />,
@@ -75,8 +85,8 @@ export default function App() {
         <Sidebar
           activeTab={activeTab}
           onTabChange={t => { setActiveTab(t); setSidebarOpen(false); }}
-          ollamaModel={ollamaModel} setOllamaModel={setOllamaModel}
-          ollamaUrl={ollamaUrl} setOllamaUrl={setOllamaUrl}
+          llmConfig={llmConfig}
+          setLlmConfig={setLlmConfig}
         />
 
         <main className="main-content">

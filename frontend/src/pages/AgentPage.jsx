@@ -20,7 +20,7 @@ const SERVICE_LABELS = {
   erase_foreground: '🧹 Erase Foreground',
 };
 
-export default function AgentPage({ addToGallery, ollamaModel, ollamaUrl }) {
+export default function AgentPage({ addToGallery, llmConfig }) {
   const [file, setFile] = useState(null);
   const [input, setInput] = useState('');
   const [history, setHistory] = useState([]);
@@ -47,15 +47,16 @@ export default function AgentPage({ addToGallery, ollamaModel, ollamaUrl }) {
     try {
       const res = await agentParse({
         user_text: msg, image_provided: !!file,
-        model: ollamaModel, ollama_url: ollamaUrl,
+        provider: llmConfig.provider, model: llmConfig.model,
       });
       if (res.type === 'question' || !res.plan) {
-        const ans = await agentAnswer({ user_text: msg, history, model: ollamaModel, ollama_url: ollamaUrl });
+        const ans = await agentAnswer({ user_text: msg, history, provider: llmConfig.provider, model: llmConfig.model });
         addMsg('assistant', ans.answer);
       } else {
         const usedLlm = res.used_llm;
+        const providerLabel = { ollama: 'Ollama', openai: 'OpenAI', claude: 'Claude' }[llmConfig.provider] || llmConfig.provider;
         addMsg('assistant',
-          `🗺️ Planned **${res.plan.steps.length} step(s)** ${usedLlm ? '*(via Ollama LLM)*' : '*(keyword fallback)*'}. Review and confirm below.`);
+          `🗺️ Planned **${res.plan.steps.length} step(s)** ${usedLlm ? `*(via ${providerLabel})*` : '*(keyword fallback)*'}. Review and confirm below.`);
         setPendingPlan(res.plan);
         setShowPlan(true);
       }
@@ -67,7 +68,7 @@ export default function AgentPage({ addToGallery, ollamaModel, ollamaUrl }) {
     if (!pendingPlan) return;
     setExecuting(true);
     try {
-      const res = await agentExecute(pendingPlan, file, { model: ollamaModel, ollama_url: ollamaUrl });
+      const res = await agentExecute(pendingPlan, file, {});
       const urls = res.result_urls || [];
       if (urls.length > 0) {
         addMsg('assistant', `✅ Done! Generated ${urls.length} image(s).`, urls);
