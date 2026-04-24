@@ -1,11 +1,13 @@
 """
-services/agent.py — AI Agent for AdSnap Studio
+services/agent.py — AI Agent for ImageMod Studio
 Parses natural-language instructions into ordered Bria API call plans
 and executes them, chaining outputs between steps.
+Supports Ollama (local), OpenAI, and Anthropic Claude as LLM providers.
 """
 
 from __future__ import annotations
 import json
+import os
 import re
 import requests
 from dataclasses import dataclass, field
@@ -38,9 +40,9 @@ KNOWN_SERVICES = [
     "erase_foreground",
 ]
 
-# ─── Ollama intent parser ─────────────────────────────────────────────────────
+# ─── Shared system prompt ────────────────────────────────────────────────────
 
-SYSTEM_PROMPT = """You are the planning module for an AI product-photography assistant called AdSnap Studio.
+SYSTEM_PROMPT = """You are the planning module for an AI product-photography assistant called ImageMod Studio.
 Given a user request, produce a JSON plan with the exact services to call (in order) and their parameters.
 
 Available services:
@@ -65,13 +67,16 @@ Rules:
 """
 
 
-def _call_ollama(user_text: str, model: str, ollama_url: str) -> Optional[dict]:
+# ─── Provider callers ─────────────────────────────────────────────────────────
+
+def _call_ollama(user_text: str, model: str, system_prompt: str = SYSTEM_PROMPT) -> Optional[dict]:
     """Call the local Ollama server and return parsed JSON plan, or None on failure."""
+    ollama_url = os.getenv("OLLAMA_URL", "http://localhost:11434")
     try:
         payload = {
             "model": model,
             "messages": [
-                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_text},
             ],
             "stream": False,
@@ -85,19 +90,85 @@ def _call_ollama(user_text: str, model: str, ollama_url: str) -> Optional[dict]:
         resp.raise_for_status()
         data = resp.json()
         content = data.get("message", {}).get("content", "")
-        # Strip markdown code fences if present
         content = re.sub(r"```(?:json)?", "", content).strip("` \n")
         return json.loads(content)
     except Exception:
         return None
 
 
+def _call_openai(user_text: str, model: str, system_prompt: str = SYSTEM_PROMPT) -> Optional[dict]:
+    """Call the OpenAI Chat Completions API. Reads OPENAI_API_KEY from env."""
+    api_key = os.getenv("OPENAI_API_KEY", "")
+    if not api_key:
+        return None
+    try:
+        resp = requests.post(
+            "https://api.openai.com/v1/chat/completions",
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            json={
+                "model": model,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_text},
+                ],
+                "response_format": {"type": "json_object"},
+                "temperature": 0.2,
+            },
+            timeout=30,
+        )
+        resp.raise_for_status()
+        content = resp.json()["choices"][0]["message"]["content"]
+        content = re.sub(r"```(?:json)?", "", content).strip("` \n")
+        return json.loads(content)
+    except Exception:
+        return None
+
+
+def _call_claude(user_text: str, model: str, system_prompt: str = SYSTEM_PROMPT) -> Optional[dict]:
+    """Call the Anthropic Messages API. Reads ANTHROPIC_API_KEY from env."""
+    api_key = os.getenv("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        return None
+    try:
+        resp = requests.post(
+            "https://api.anthropic.com/v1/messages",
+            headers={
+                "x-api-key": api_key,
+                "anthropic-version": "2023-06-01",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": model,
+                "system": system_prompt,
+                "messages": [{"role": "user", "content": user_text}],
+                "max_tokens": 1024,
+            },
+            timeout=30,
+        )
+        resp.raise_for_status()
+        content = resp.json()["content"][0]["text"]
+        content = re.sub(r"```(?:json)?", "", content).strip("` \n")
+        return json.loads(content)
+    except Exception:
+        return None
+
+
+def _call_llm(user_text: str, provider: str, model: str, system_prompt: str = SYSTEM_PROMPT) -> Optional[dict]:
+    """Dispatch to the correct LLM provider."""
+    if provider == "openai":
+        return _call_openai(user_text, model, system_prompt)
+    elif provider == "claude":
+        return _call_claude(user_text, model, system_prompt)
+    else:  # default: ollama
+        return _call_ollama(user_text, model, system_prompt)
+
+
 # ─── App context for conversational QA ───────────────────────────────────────
 
-APP_QA_SYSTEM_PROMPT = """You are a helpful assistant embedded inside AdSnap Studio, an AI product-photography web app.
+APP_QA_SYSTEM_PROMPT = """You are a helpful assistant embedded inside ImageMod Studio, an AI product-photography web app.
 
 === APP OVERVIEW ===
-AdSnap Studio uses the Bria AI API to generate and edit product images. It runs locally as a Streamlit web app.
+ImageMod Studio uses the Bria AI API to generate and edit product images. It runs as a React + FastAPI web app.
 
 === TABS ===
 1. 🎨 Generate Image — Generate images from a text prompt. Options: number of images, aspect ratio, style (Realistic, Artistic, Cartoon, etc.), Enhance Image quality toggle.
@@ -150,61 +221,94 @@ The key is only stored in your browser session — never saved to disk.
 def answer_question(
     user_text: str,
     history: list[dict],
+    provider: str = "ollama",
     model: str = "llama3",
-    ollama_url: str = "http://localhost:11434",
 ) -> str:
     """
-    Answer a conversational/informational question about the app using Ollama.
-    Injects the full app context and recent conversation history.
-
-    Parameters
-    ----------
-    user_text : the user's current question
-    history   : list of {role, content} dicts from agent_history
-    model     : Ollama model name
-    ollama_url: Ollama server URL
-
-    Returns
-    -------
-    A markdown-formatted string answer. Falls back to a short message if Ollama is offline.
+    Answer a conversational/informational question using the configured LLM provider.
+    Reads API keys from environment variables.
     """
-    # Build messages: system prompt + last 10 turns of history + current question
-    messages = [{"role": "system", "content": APP_QA_SYSTEM_PROMPT}]
+    # Build a plain-text context message including history
+    history_text = ""
     for turn in history[-10:]:
-        role = turn.get("role", "user")
+        role = turn.get("role", "user").capitalize()
         content = turn.get("content", "")
         if content:
-            messages.append({"role": role, "content": content})
-    messages.append({"role": "user", "content": user_text})
+            history_text += f"{role}: {content}\n"
+    full_prompt = f"{history_text}User: {user_text}"
 
     try:
-        payload = {
-            "model": model,
-            "messages": messages,
-            "stream": False,
-        }
-        resp = requests.post(
-            f"{ollama_url.rstrip('/')}/api/chat",
-            json=payload,
-            timeout=30,
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        answer = data.get("message", {}).get("content", "").strip()
-        if answer:
-            return answer
-    except Exception:
-        pass
+        if provider == "openai":
+            api_key = os.getenv("OPENAI_API_KEY", "")
+            if not api_key:
+                raise ValueError("OPENAI_API_KEY not set in .env")
+            resp = requests.post(
+                "https://api.openai.com/v1/chat/completions",
+                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                json={
+                    "model": model,
+                    "messages": [
+                        {"role": "system", "content": APP_QA_SYSTEM_PROMPT},
+                        {"role": "user", "content": full_prompt},
+                    ],
+                    "temperature": 0.7,
+                },
+                timeout=30,
+            )
+            resp.raise_for_status()
+            return resp.json()["choices"][0]["message"]["content"].strip()
 
-    # Fallback when Ollama is offline
-    return (
-        "⚠️ Ollama is not running, so I can't answer questions in detail right now.\n\n"
-        "**Quick help:**\n"
-        "- **API key** → get it from [bria.ai](https://bria.ai) → dashboard → API Keys → paste in the sidebar\n"
-        "- **Change Ollama model** → use the *Ollama Model* dropdown in the sidebar\n"
-        "- **Image tasks** → type what you want (e.g. *'white background packshot'*) and I'll plan the steps\n\n"
-        "To enable full conversational answers, start Ollama: `ollama serve`"
-    )
+        elif provider == "claude":
+            api_key = os.getenv("ANTHROPIC_API_KEY", "")
+            if not api_key:
+                raise ValueError("ANTHROPIC_API_KEY not set in .env")
+            resp = requests.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={
+                    "x-api-key": api_key,
+                    "anthropic-version": "2023-06-01",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": model,
+                    "system": APP_QA_SYSTEM_PROMPT,
+                    "messages": [{"role": "user", "content": full_prompt}],
+                    "max_tokens": 1024,
+                },
+                timeout=30,
+            )
+            resp.raise_for_status()
+            return resp.json()["content"][0]["text"].strip()
+
+        else:  # ollama
+            ollama_url = os.getenv("OLLAMA_URL", "http://localhost:11434")
+            messages = [{"role": "system", "content": APP_QA_SYSTEM_PROMPT}]
+            for turn in history[-10:]:
+                role = turn.get("role", "user")
+                content = turn.get("content", "")
+                if content:
+                    messages.append({"role": role, "content": content})
+            messages.append({"role": "user", "content": user_text})
+            resp = requests.post(
+                f"{ollama_url.rstrip('/')}/api/chat",
+                json={"model": model, "messages": messages, "stream": False},
+                timeout=30,
+            )
+            resp.raise_for_status()
+            answer = resp.json().get("message", {}).get("content", "").strip()
+            if answer:
+                return answer
+            raise ValueError("Empty response from Ollama")
+
+    except Exception as exc:
+        provider_label = {"openai": "OpenAI", "claude": "Claude", "ollama": "Ollama"}.get(provider, provider)
+        return (
+            f"⚠️ {provider_label} is unavailable: `{exc}`\n\n"
+            "**Quick help:**\n"
+            "- Check your API key / Ollama server in `.env`\n"
+            "- For Ollama: run `ollama serve` and ensure the model is pulled\n"
+            "- **Image tasks** → type what you want (e.g. *'white background packshot'*) and I'll plan the steps"
+        )
 
 
 
@@ -279,27 +383,28 @@ def parse_intent(
     user_text: str,
     image_provided: bool = False,
     preferences: dict | None = None,
+    provider: str = "ollama",
     model: str = "llama3",
-    ollama_url: str = "http://localhost:11434",
 ) -> tuple[Optional[AgentPlan], bool]:
     """
     Parse natural-language user request into an AgentPlan.
+    Dispatches to the configured LLM provider; falls back to keyword rules.
 
     Returns
     -------
     (plan, used_llm)
         plan     : AgentPlan ready to execute, or None if the message is
                    a conversational question (should get a text reply instead)
-        used_llm : True if Ollama was used, False if rule-based fallback was used
+        used_llm : True if an LLM was used, False if rule-based fallback was used
     """
     preferences = preferences or {}
 
-    # ① Detect conversational / informational questions — don't try to run image services
+    # ① Detect conversational / informational questions
     if is_question(user_text):
         return None, False
 
-    # ② Try Ollama first
-    llm_data = _call_ollama(user_text, model, ollama_url)
+    # ② Try configured LLM provider
+    llm_data = _call_llm(user_text, provider, model)
 
     if llm_data and "steps" in llm_data:
         steps: list[AgentStep] = []
@@ -308,7 +413,6 @@ def parse_intent(
             if svc not in KNOWN_SERVICES:
                 continue
             params = raw.get("params", {})
-            # Merge stored preferences (only fill gaps, don't override)
             merged = {**preferences, **params}
             use_prev = raw.get("use_previous_output", False)
             steps.append(AgentStep(service_name=svc, params=merged,
@@ -317,13 +421,11 @@ def parse_intent(
         if steps:
             return AgentPlan(steps=steps, original_request=user_text), True
 
-    # ③ Ollama failed / empty — fall back to rule-based
+    # ③ LLM failed / empty — fall back to rule-based keywords
     plan = _rule_based_parse(user_text, image_provided)
-    # Merge preferences into each step's params
     for step in plan.steps:
         step.params = {**preferences, **step.params}
 
-    # If the rule-based parse also produced no steps, treat as conversational
     if not plan.steps:
         return None, False
 

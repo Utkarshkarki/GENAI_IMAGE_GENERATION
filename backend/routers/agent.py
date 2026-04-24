@@ -1,5 +1,7 @@
 """
 backend/routers/agent.py — AI Agent: parse intent, execute plan, memory management
+Supports Ollama, OpenAI, and Claude as LLM providers.
+Keys are read from server-side .env — never exposed to the client.
 """
 from fastapi import APIRouter, HTTPException, Header, UploadFile, File, Form
 from pydantic import BaseModel
@@ -42,21 +44,21 @@ def clear_memory():
 class ParseRequest(BaseModel):
     user_text: str
     image_provided: bool = False
+    provider: str = "ollama"   # "ollama" | "openai" | "claude"
     model: str = "llama3"
-    ollama_url: str = "http://localhost:11434"
 
 
 class ExecuteRequest(BaseModel):
-    plan: dict          # serialized AgentPlan
+    plan: dict
+    provider: str = "ollama"
     model: str = "llama3"
-    ollama_url: str = "http://localhost:11434"
 
 
 class QuestionRequest(BaseModel):
     user_text: str
     history: list = []
+    provider: str = "ollama"
     model: str = "llama3"
-    ollama_url: str = "http://localhost:11434"
 
 
 def _deserialize_plan(plan_dict: dict) -> AgentPlan:
@@ -92,8 +94,8 @@ async def agent_parse(req: ParseRequest):
         user_text=req.user_text,
         image_provided=req.image_provided,
         preferences=prefs,
+        provider=req.provider,
         model=req.model,
-        ollama_url=req.ollama_url,
     )
     if plan is None:
         return {"type": "question", "plan": None, "used_llm": used_llm}
@@ -103,8 +105,6 @@ async def agent_parse(req: ParseRequest):
 @router.post("/agent/execute")
 async def agent_execute(
     plan_json: str = Form(...),
-    model: str = Form("llama3"),
-    ollama_url: str = Form("http://localhost:11434"),
     file: Optional[UploadFile] = File(None),
     x_api_key: str = Header(...),
 ):
@@ -127,7 +127,7 @@ async def agent_answer(req: QuestionRequest):
     answer = answer_question(
         user_text=req.user_text,
         history=req.history,
+        provider=req.provider,
         model=req.model,
-        ollama_url=req.ollama_url,
     )
     return {"answer": answer}
