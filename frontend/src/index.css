@@ -7,6 +7,7 @@
 
 /* ── Tokens ─────────────────────────────────────────────── */
 :root {
+  color-scheme: dark;
   --bg-base:      #070b14;
   --bg-surface:   #0d1525;
   --bg-card:      #111d35;
@@ -149,6 +150,10 @@ body::after {
 }
 .textarea { resize:vertical; min-height:90px; }
 .select { cursor:pointer; appearance:none; }
+.select option {
+  background: #0d1525;
+  color: var(--text-primary);
+}
 .input::placeholder,.textarea::placeholder { color:var(--text-muted); }
 
 /* ── Buttons ─────────────────────────────────────────────── */
