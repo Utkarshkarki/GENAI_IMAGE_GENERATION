@@ -12,7 +12,7 @@ import AgentPage     from './pages/AgentPage';
 import GalleryPage   from './pages/GalleryPage';
 
 function loadGallery() {
-  try { return JSON.parse(localStorage.getItem('adsnap_gallery') || '[]'); } catch { return []; }
+  try { return JSON.parse(localStorage.getItem('imagemod_gallery') || '[]'); } catch { return []; }
 }
 
 export default function App() {
@@ -23,7 +23,7 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
-    localStorage.setItem('adsnap_gallery', JSON.stringify(gallery));
+    localStorage.setItem('imagemod_gallery', JSON.stringify(gallery));
   }, [gallery]);
 
   function addToGallery(url, label) {
@@ -37,7 +37,7 @@ export default function App() {
 
   function clearGallery() {
     setGallery([]);
-    localStorage.removeItem('adsnap_gallery');
+    localStorage.removeItem('imagemod_gallery');
     toast('Gallery cleared', { icon: '🗑️', duration: 2000 });
   }
 

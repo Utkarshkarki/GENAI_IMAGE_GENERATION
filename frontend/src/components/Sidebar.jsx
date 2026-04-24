@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { getMemory, deleteMemory, clearMemory } from '../api';
 
 export default function Sidebar({ activeTab, onTabChange, ollamaModel, setOllamaModel, ollamaUrl, setOllamaUrl }) {
-  const [apiKey, setApiKey] = useState(localStorage.getItem('adsnap_api_key') || '');
+  const [apiKey, setApiKey] = useState(localStorage.getItem('imagemod_api_key') || '');
   const [showKey, setShowKey] = useState(false);
   const [memory, setMemory] = useState({});
 
@@ -19,7 +19,7 @@ export default function Sidebar({ activeTab, onTabChange, ollamaModel, setOllama
   ];
 
   useEffect(() => {
-    localStorage.setItem('adsnap_api_key', apiKey);
+    localStorage.setItem('imagemod_api_key', apiKey);
   }, [apiKey]);
 
   useEffect(() => {
@@ -46,7 +46,7 @@ export default function Sidebar({ activeTab, onTabChange, ollamaModel, setOllama
       <div className="sidebar-logo">
         <div className="sidebar-logo-icon">✦</div>
         <div>
-          <h1>AdSnap</h1>
+          <h1>ImageMod</h1>
           <span>Studio</span>
         </div>
       </div>

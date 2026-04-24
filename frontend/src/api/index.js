@@ -2,7 +2,7 @@
 const BASE = '/api';
 
 function getKey() {
-  return localStorage.getItem('adsnap_api_key') || '';
+  return localStorage.getItem('imagemod_api_key') || '';
 }
 
 function headers() {

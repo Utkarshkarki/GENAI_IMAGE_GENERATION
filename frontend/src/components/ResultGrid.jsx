@@ -13,7 +13,7 @@ export default function ResultGrid({ urls, onAdd }) {
           <div key={i} className="result-card">
             <img src={url} alt={`Result ${i+1}`} onClick={() => setLightbox(url)} style={{cursor:'zoom-in'}} />
             <div className="result-card-actions">
-              <a href={url} download={`adsnap_result_${i+1}.png`} target="_blank" rel="noreferrer"
+              <a href={url} download={`imagemod_result_${i+1}.png`} target="_blank" rel="noreferrer"
                 className="btn btn-ghost btn-xs btn-full">⬇ Download</a>
               {onAdd && <button className="btn btn-ghost btn-xs" onClick={() => onAdd(url)}>＋</button>}
             </div>

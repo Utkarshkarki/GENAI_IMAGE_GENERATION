@@ -51,7 +51,7 @@ export default function GalleryPage({ gallery, clearGallery }) {
               <div className="gallery-item-overlay">
                 <span className="badge badge-accent" style={{width:'fit-content',fontSize:'10px'}}>{item.label}</span>
                 <div style={{display:'flex',gap:'6px'}}>
-                  <a href={item.url} download={`adsnap_${i+1}.png`} target="_blank" rel="noreferrer"
+                  <a href={item.url} download={`imagemod_${i+1}.png`} target="_blank" rel="noreferrer"
                     className="btn btn-ghost btn-xs btn-full" onClick={e => e.stopPropagation()}>⬇ Download</a>
                 </div>
               </div>
@@ -66,7 +66,7 @@ export default function GalleryPage({ gallery, clearGallery }) {
           <button className="lightbox-close" onClick={() => setLightbox(null)}>✕</button>
           <div style={{position:'absolute',bottom:'24px',left:'50%',transform:'translateX(-50%)',display:'flex',gap:'10px'}}>
             <span className="badge badge-accent">{lightbox.label}</span>
-            <a href={lightbox.url} download="adsnap_image.png" target="_blank" rel="noreferrer"
+            <a href={lightbox.url} download="imagemod_image.png" target="_blank" rel="noreferrer"
               className="btn btn-primary btn-sm" onClick={e => e.stopPropagation()}>⬇ Download</a>
           </div>
         </div>
