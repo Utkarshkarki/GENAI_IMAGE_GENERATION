@@ -6,7 +6,7 @@
 
 # ✦ AdSnap Studio
 
-### AI-Powered Product Photography & Image Generation
+### AI-Powered Products Photography & Image Generation
 
 [![Python](https://img.shields.io/badge/Python-3.9%2B-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
